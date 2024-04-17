@@ -1,4 +1,8 @@
+from functools import partial
+
 import torch
+import wandb
+from torch import nn
 from torch.utils.data import Dataset, DataLoader, Subset
 import pandas as pd
 import os
@@ -83,26 +87,29 @@ if __name__ == '__main__':
             num_workers=num_workers,
             collate_fn=lambda x: collate_fn([(val_transform(item[0]), item[1]) for item in x])
         )
-
-    # config = configurations['vim-s2']
-    # config['img_size'] = 224
-    # config['patch_size'] = 8
-    # config['stride'] = 8
-    # model = VisionMamba(num_classes=3, **config)
-    # state_dict = torch.load('vim_s_midclstok_80p5acc.pth')['model']
-    # state_dict.pop('head.weight')
-    # state_dict.pop('head.bias')
-    # model.load_state_dict(state_dict, strict=False)
-    config = configurations['vit-s']
-    model = create_model(
-        args.model,
-        pretrained=True,
-        num_classes=3,
-        drop_rate=config['drop_rate'],
-        drop_path_rate=args.drop_path,
-        drop_block_rate=None,
-        img_size=224
-    )
+    if args.arch in configurations:
+        config = configurations[args.arch]
+        if args.arch.startswith('vim'):
+            model = VisionMamba(num_classes=3, **config)
+            state_dict = torch.load('vim_s_midclstok_80p5acc.pth')['model']
+            state_dict.pop('head.weight')
+            state_dict.pop('head.bias')
+            model.load_state_dict(state_dict, strict=False)
+        elif args.arch.startswith('vit'):
+            config = configurations['vit-s']
+            model = create_model(
+                args.model,
+                pretrained=True,
+                num_classes=3,
+                drop_rate=config['drop_rate'],
+                drop_path_rate=args.drop_path,
+                drop_block_rate=None,
+                img_size=224
+            )
+        embed_dim = model.embed_dim
+        print('EMBEDDED DIM:', embed_dim)
+    else:
+        print(f"Unknown architecture: {args.arch}")
 
     model.to(device)
     if args.model_ema:
