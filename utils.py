@@ -11,8 +11,10 @@ import time
 from collections import defaultdict, deque
 import datetime
 
+import numpy as np
 import torch
 import torch.distributed as dist
+
 
 
 class SmoothedValue(object):
@@ -164,10 +166,18 @@ def _load_checkpoint_for_ema(model_ema, checkpoint):
     Workaround for ModelEma._load_checkpoint to accept an already-loaded object
     """
     mem_file = io.BytesIO()
-    torch.save({'state_dict_ema':checkpoint}, mem_file)
+    torch.save({'state_dict_ema': checkpoint}, mem_file)
     mem_file.seek(0)
     model_ema._load_checkpoint(mem_file)
 
+def set_seed(base_seed):
+    """Set seed for reproducibility."""
+    rank = get_rank()
+    seed = base_seed + rank
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 def setup_for_distributed(is_master):
     """

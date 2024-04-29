@@ -21,6 +21,7 @@ dataset/
 *jpg
 *csv
 *xlsx
+*txt
 .ipynb_checkpoints/
 __pycache__/
 .idea/

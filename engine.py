@@ -13,11 +13,10 @@ import timm
 from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
 
-from .losses import DistillationLoss
-from . import utils
+import utils
 
 
-def train_one_epoch(model: torch.nn.Module, criterion: DistillationLoss,
+def train_one_epoch(model: torch.nn.Module, criterion,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, loss_scaler, amp_autocast, max_norm: float = 0,
                     model_ema: Optional[ModelEma] = None, mixup_fn: Optional[Mixup] = None,
@@ -28,9 +27,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: DistillationLoss,
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 10
     
-    if args.cosub:
-        criterion = torch.nn.BCEWithLogitsLoss()
-        
+
     # debug
     # count = 0
     for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
