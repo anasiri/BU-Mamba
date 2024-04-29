@@ -25,3 +25,4 @@ dataset/
 .ipynb_checkpoints/
 __pycache__/
 .idea/
+wandb/

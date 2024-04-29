@@ -14,7 +14,7 @@ import datetime
 import numpy as np
 import torch
 import torch.distributed as dist
-
+import wandb
 
 
 class SmoothedValue(object):
@@ -107,9 +107,11 @@ class MetricLogger(object):
             )
         return self.delimiter.join(loss_str)
 
-    def synchronize_between_processes(self):
+    def synchronize_between_processes(self, args):
         for meter in self.meters.values():
             meter.synchronize_between_processes()
+        if not args.disable_wandb and args.local_rank==0:
+            wandb.log({meter_name: meter.value for meter_name, meter in self.meters.items()})
 
     def add_meter(self, name, meter):
         self.meters[name] = meter
