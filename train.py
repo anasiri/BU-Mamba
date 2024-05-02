@@ -16,23 +16,24 @@ def init_model(args, device):
     """Initialize the model based on the provided arguments."""
     if args.arch in configurations:
         config = configurations[args.arch]
-        if args.arch.startswith('vim'):
+        if args.arch == 'vim-s':
             model = VisionMamba(num_classes=3, **config)
             state_dict = torch.load('checkpoints/vim_s_midclstok_80p5acc.pth')['model']
             state_dict.pop('head.weight')
             state_dict.pop('head.bias')
             model.load_state_dict(state_dict, strict=False)
-        elif args.arch.startswith('vit'):
-            config = configurations['vit-s']
-            model = create_model(
-                args.model,
-                pretrained=True,
-                num_classes=3,
-                drop_rate=config['drop_rate'],
-                drop_path_rate=args.drop_path,
-                drop_block_rate=None,
-                img_size=224
-            )
+        elif args.arch == 'vit-s':
+            # config = configurations['vit-s']
+            model = create_model('vit_small_patch16_224', pretrained=True, img_size=224, num_classes=3)
+            #     create_model(
+            #     args.arch,
+            #     pretrained=True,
+            #     num_classes=3,
+            #     drop_rate=config['drop_rate'],
+            #     drop_path_rate=args.drop_path,
+            #     drop_block_rate=None,
+            #     img_size=224
+            # ))
         model.to(device)
         return model
     else:
