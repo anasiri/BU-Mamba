@@ -19,7 +19,7 @@ def main():
     if not args.disable_wandb and args.local_rank == 0:
         wandb.init(
             # set the wandb project where this run will be logged
-            project="BU-Vim",
+            project="BU-ViT",
             # track hyperparameters and run metadata
             config=args
         )

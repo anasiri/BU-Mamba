@@ -35,5 +35,9 @@ configurations = {
         "drop_path_rate": 0.1,
         "norm_layer": "nn.LayerNorm",
         "eps": 1e-6
+    },
+    "vssm":
+    {
+        "img_size":224
     }
 }

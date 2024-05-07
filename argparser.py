@@ -175,6 +175,6 @@ def get_args_parser():
     parser.set_defaults(if_random_token_rank=False)
 
     parser.add_argument('--local-rank', default=0, type=int)
-    parser.add_argument('--arch', default='vim-s', type=str, choices=['vim-s', 'vit-s'])
+    parser.add_argument('--arch', default='vim-s', type=str, choices=['vim-s', 'vit-s', 'vssm'])
     parser.add_argument('--disable_wandb', action='store_false', help='Disable Weights & Biases logging. Enabled by default.')
     return parser

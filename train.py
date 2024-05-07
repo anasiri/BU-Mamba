@@ -11,6 +11,7 @@ from timm.utils import NativeScaler, ModelEma
 from config import configurations
 import utils
 from vim.models_mamba import VisionMamba
+from VMamba.classification.models.vmamba import VSSM
 
 def init_model(args, device):
     """Initialize the model based on the provided arguments."""
@@ -34,11 +35,47 @@ def init_model(args, device):
             #     drop_block_rate=None,
             #     img_size=224
             # ))
+        elif args.arch == 'vssm':
+            model = VSSM(
+                patch_size=4,
+                in_chans=3,
+                num_classes=3,
+                depths=[2, 2, 5, 2],
+                dims=96,
+                # ===================
+                ssm_d_state=1,
+                ssm_ratio=2.0,
+                ssm_rank_ratio=2.0,
+                ssm_dt_rank="auto",
+                ssm_act_layer="silu",
+                ssm_conv=3,
+                ssm_conv_bias=False,
+                ssm_drop_rate=0.0,
+                ssm_init="v0",
+                forward_type="v05_noz",
+                # ===================
+                mlp_ratio=4.0,
+                mlp_act_layer="gelu",
+                mlp_drop_rate=0.0,
+                # ===================
+                drop_path_rate=0.2,
+                patch_norm=True,
+                norm_layer="ln2d",
+                downsample_version="v3",
+                patchembed_version="v2",
+                gmlp=False,
+                use_checkpoint=False,
+                # ===================
+                posembed=False,
+                imgsize=224,
+            )
+            state_dict = torch.load('VMamba/vssm_tiny_0230_ckpt_epoch_262.pth')['model']
+            state_dict = {key: value for key, value in state_dict.items() if not key.startswith('classifier')}
+            model.load_state_dict(state_dict, strict=False)
         model.to(device)
         return model
     else:
         raise ValueError(f"Unknown architecture: {args.arch}")
-
 
 def init_criterion(args):
     mixup_fn = None
@@ -61,7 +98,6 @@ def init_criterion(args):
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
-
     return criterion, mixup_fn
 
 
@@ -73,7 +109,6 @@ def init_training(model, args):
             decay=args.model_ema_decay,
             device='cpu' if args.model_ema_force_cpu else '',
             resume='')
-
 
     if not args.unscale_lr:
         linear_scaled_lr = args.lr * args.batch_size * utils.get_world_size() / 512.0
