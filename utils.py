@@ -272,3 +272,33 @@ def interpolate_pos_embed(model, state_dict):
         pos_tokens = pos_tokens.permute(0, 2, 3, 1).flatten(1, 2)
         new_pos_embed = torch.cat((extra_tokens, pos_tokens), dim=1)
         state_dict['pos_embed'] = new_pos_embed
+
+from sklearn.metrics import roc_auc_score
+import torch
+import numpy as np
+def multi_class_auc(all_outputs, all_targets):
+    """Computes the one-vs-rest AUC for each class and averages them.
+
+    Args:
+        all_outputs (Tensor): Concatenated output tensors from all batches (logits).
+        all_targets (Tensor): Concatenated target tensors from all batches.
+
+    Returns:
+        float: The average AUC score across all classes.
+    """
+    # Apply softmax to convert logits to probabilities
+    probabilities = torch.softmax(all_outputs, dim=1).detach().cpu().numpy()
+    targets = all_targets.cpu().numpy()
+    num_classes = probabilities.shape[1]
+
+    # Calculate AUC for each class and average
+    auc_scores = []
+    for class_idx in range(num_classes):
+        # Create binary targets for the current class
+        binary_targets = (targets == class_idx).astype(int)
+        # Calculate AUC only if there are positive labels for the class
+        if len(np.unique(binary_targets)) > 1:
+            auc_score = roc_auc_score(binary_targets, probabilities[:, class_idx])
+            auc_scores.append(auc_score)
+
+    return np.mean(auc_scores) if auc_scores else 0.0

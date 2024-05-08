@@ -12,7 +12,7 @@ import torch
 import timm
 from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
-from timm.utils.metrics import multi_class_auc
+from utils import multi_class_auc
 
 import utils
 
