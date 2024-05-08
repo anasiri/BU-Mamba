@@ -31,6 +31,7 @@ def main():
     train_loaders, val_loaders = get_data_loaders(args)
 
     all_folds_max_accuracy = []
+    all_folds_max_auc = []
     for fold_index in range(len(train_loaders)):
         train_loader = train_loaders[fold_index]
         val_loader = val_loaders[fold_index]
@@ -47,6 +48,7 @@ def main():
         print(f"Start training for fold {fold_index + 1}/{len(train_loaders)} for {args.epochs} epochs")
         start_time = time.time()
         max_accuracy = 0.0
+        max_auc = 0.0
         n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f'Number of params: {n_parameters}')
 
@@ -80,9 +82,11 @@ def main():
 
             test_stats = evaluate(val_loader, model, device, amp_autocast, args)
             print(f"Accuracy of the network for fold {fold_index + 1} on test images: {test_stats['acc1']:.1f}%")
+            print(f"AUC of the network for fold {fold_index + 1} on test images: {test_stats['auc']:.3f}")
 
             if max_accuracy < test_stats["acc1"]:
                 max_accuracy = test_stats["acc1"]
+                max_auc = test_stats["auc"]  # Update max AUC simultaneously
                 if args.output_dir:
                     checkpoint_paths = [output_dir / 'best_checkpoint.pth']
                     for checkpoint_path in checkpoint_paths:
@@ -97,7 +101,8 @@ def main():
                             'args': args,
                         }, checkpoint_path)
 
-            print(f'Max accuracy for fold {fold_index + 1}: {max_accuracy:.2f}% Epoch {epoch+1}/{args.epochs}')
+            print(f'\nMax accuracy for fold {fold_index + 1}: {max_accuracy:.2f}% Epoch {epoch+1}/{args.epochs}')
+            print(f'Max AUC for fold {fold_index + 1}: {max_auc:.2f}% Epoch {epoch+1}/{args.epochs}\n')
             log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                          **{f'test_{k}': v for k, v in test_stats.items()},
                          'epoch': epoch, 'fold': fold_index + 1}
@@ -107,13 +112,18 @@ def main():
                     f.write(json.dumps(log_stats) + "\n")
 
         print(f'Max accuracy for fold {fold_index + 1}: {max_accuracy:.2f}%')
+        print(f'Max AUC for fold {fold_index + 1}: {max_auc:.3f}')
         all_folds_max_accuracy.append(max_accuracy)
+        all_folds_max_auc.append(max_auc)  # Append max AUC per fold
+
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
         print(f'Training time for fold {fold_index + 1}: {total_time_str} \n\n\n')
 
     average_max_accuracy = sum(all_folds_max_accuracy) / len(all_folds_max_accuracy)
+    average_max_auc = sum(all_folds_max_auc) / len(all_folds_max_auc)  # Average AUC across folds
     print(f'Average maximum accuracy across all folds: {average_max_accuracy:.2f}%')
+    print(f'Average maximum AUC across all folds: {average_max_auc:.3f}')
 
 if __name__ == '__main__':
     main()

@@ -12,6 +12,7 @@ import torch
 import timm
 from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
+from timm.utils.metrics import multi_class_auc
 
 import utils
 
@@ -20,13 +21,12 @@ def train_one_epoch(model: torch.nn.Module, criterion,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, loss_scaler, amp_autocast, max_norm: float = 0,
                     model_ema: Optional[ModelEma] = None, mixup_fn: Optional[Mixup] = None,
-                    set_training_mode=True, args = None):
+                    set_training_mode=True, args=None):
     model.train(set_training_mode)
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 1
-    
 
     # debug
     # count = 0
@@ -40,13 +40,13 @@ def train_one_epoch(model: torch.nn.Module, criterion,
 
         if mixup_fn is not None:
             samples, targets = mixup_fn(samples, targets)
-            
+
         if args.cosub:
-            samples = torch.cat((samples,samples),dim=0)
-            
+            samples = torch.cat((samples, samples), dim=0)
+
         if args.bce_loss:
             targets = targets.gt(0.0).type(targets.dtype)
-         
+
         with amp_autocast():
             # outputs = model(samples, if_random_cls_token_position=args.if_random_cls_token_position, if_random_token_rank=args.if_random_token_rank)
             outputs = model(samples)
@@ -80,7 +80,7 @@ def train_one_epoch(model: torch.nn.Module, criterion,
         if isinstance(loss_scaler, timm.utils.NativeScaler):
             is_second_order = hasattr(optimizer, 'is_second_order') and optimizer.is_second_order
             loss_scaler(loss, optimizer, clip_grad=max_norm,
-                    parameters=model.parameters(), create_graph=is_second_order)
+                        parameters=model.parameters(), create_graph=is_second_order)
         else:
             loss.backward()
             if max_norm != None:
@@ -109,6 +109,10 @@ def evaluate(data_loader, model, device, amp_autocast, args):
     # switch to evaluation mode
     model.eval()
 
+    # These will store all outputs and targets to compute AUC
+    all_outputs = []
+    all_targets = []
+
     for images, target in metric_logger.log_every(data_loader, 10, header):
         images = images.to(device, non_blocking=True)
         target = target.to(device, non_blocking=True)
@@ -122,9 +126,24 @@ def evaluate(data_loader, model, device, amp_autocast, args):
         batch_size = images.shape[0]
         metric_logger.update(loss=loss.item())
         metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
+
+        # Save outputs and targets to calculate AUC later
+        all_outputs.append(output)
+        all_targets.append(target)
+
+    # Concatenate all batches for global AUC computation
+    all_outputs = torch.cat(all_outputs)
+    all_targets = torch.cat(all_targets)
+
+    # Calculate global AUC
+    auc_score = multi_class_auc(all_outputs, all_targets)*100
+
     # gather the stats from all processes
     metric_logger.synchronize_between_processes(args)
-    print('* Acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f}'
-          .format(top1=metric_logger.acc1, losses=metric_logger.loss))
+    print('* Acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f} AUC {auc:.3f}'
+          .format(top1=metric_logger.meters['acc1'], losses=metric_logger.meters['loss'], auc=auc_score))
 
-    return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+    # Add AUC to results
+    results = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+    results['auc'] = auc_score
+    return results
