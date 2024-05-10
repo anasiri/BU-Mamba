@@ -1,4 +1,4 @@
-configurations = {
+configurations: {
     "vim-s": {
         "img_size": 224,
         "patch_size": 16,
@@ -19,25 +19,33 @@ configurations = {
         "use_middle_cls_token": True,
         "bimamba_type": "v2"
     },
-    "vit-s": {
-        "img_size": 224,
-        "patch_size": 16,
-        "in_chans": 3,
-        "num_classes": 2,
-        "embed_dim": 384,
-        "depth": 12,
-        "num_heads": 6,
-        "mlp_ratio": 4,
-        "qkv_bias": True,
-        "qk_scale": None,
-        "drop_rate": 0.0,
-        "attn_drop_rate": 0.0,
-        "drop_path_rate": 0.1,
-        "norm_layer": "nn.LayerNorm",
-        "eps": 1e-6
-    },
-    "vssm":
-    {
-        "img_size":224
-    }
+    "vssm-ti": {
+            "patch_size": 4,
+            "in_chans": 3,
+            "num_classes": 3,
+            "depths": [2, 2, 5, 2],
+            "dims": 96,
+            "ssm_d_state": 1,
+            "ssm_ratio": 2.0,
+            "ssm_rank_ratio": 2.0,
+            "ssm_dt_rank": "auto",
+            "ssm_act_layer": "silu",
+            "ssm_conv": 3,
+            "ssm_conv_bias": False,
+            "ssm_drop_rate": 0.0,
+            "ssm_init": "v0",
+            "forward_type": "v05_noz",
+            "mlp_ratio": 4.0,
+            "mlp_act_layer": "gelu",
+            "mlp_drop_rate": 0.0,
+            "drop_path_rate": 0.2,
+            "patch_norm": True,
+            "norm_layer": "ln2d",
+            "downsample_version": "v3",
+            "patchembed_version": "v2",
+            "gmlp": False,
+            "use_checkpoint": False,
+            "posembed": False,
+            "imgsize": 224
+        }
 }

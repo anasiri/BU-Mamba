@@ -12,63 +12,48 @@ from config import configurations
 import utils
 from vim.models_mamba import VisionMamba
 from VMamba.classification.models.vmamba import VSSM
+from torchvision import models
 
 def init_model(args, device):
     """Initialize the model based on the provided arguments."""
     if args.arch in configurations:
-        config = configurations[args.arch]
-        if args.arch == 'vim-s':
+        if args.arch == 'resnet50':
+            model = models.resnet50(weights=models.resnet.ResNet50_Weights.IMAGENET1K_V1)
+            model.fc = nn.Linear(2048, 3)
+        elif args.arch == 'vgg16':
+            model = models.vgg16(weights=models.vgg.VGG16_Weights.IMAGENET1K_V1)
+            model.classifier = nn.Sequential(
+                nn.Linear(in_features=25088, out_features=4096, bias=True),
+                nn.ReLU(inplace=True),
+                nn.Dropout(p=0.5, inplace=False),
+                nn.Linear(in_features=4096, out_features=4096, bias=True),
+                nn.ReLU(inplace=True),
+                nn.Dropout(p=0.5, inplace=False),
+                nn.Linear(in_features=4096, out_features=3, bias=True)
+            )
+        elif args.arch == 'inception':
+            model = models.inception_v3(weights=models.inception.Inception_V3_Weights.IMAGENET1K_V1)
+            model.fc = nn.Linear(2048, 3)
+        elif args.arch == 'vit-ti16':
+            model = create_model('vit_tiny_patch16_224', pretrained=True, img_size=224, num_classes=3)
+        elif args.arch == 'vit-s16':
+            model = create_model('vit_small_patch16_224', pretrained=True, img_size=224, num_classes=3)
+        elif args.arch == 'vit-s32':
+            model = create_model('vit_small_patch32_224', pretrained=True, img_size=224, num_classes=3)
+        elif args.arch == 'vit-b16':
+            model = create_model('vit_base_patch16_224', pretrained=True, img_size=224, num_classes=3)
+        elif args.arch == 'vit-b32':
+            model = create_model('vit_base_patch32_224', pretrained=True, img_size=224, num_classes=3)
+        elif args.arch == 'vim-s':
+            config = configurations[args.arch]
             model = VisionMamba(num_classes=3, **config)
             state_dict = torch.load('checkpoints/vim_s_midclstok_80p5acc.pth')['model']
             state_dict.pop('head.weight')
             state_dict.pop('head.bias')
             model.load_state_dict(state_dict, strict=False)
-        elif args.arch == 'vit-s':
-            # config = configurations['vit-s']
-            model = create_model('vit_small_patch16_224', pretrained=True, img_size=224, num_classes=3)
-            #     create_model(
-            #     args.arch,
-            #     pretrained=True,
-            #     num_classes=3,
-            #     drop_rate=config['drop_rate'],
-            #     drop_path_rate=args.drop_path,
-            #     drop_block_rate=None,
-            #     img_size=224
-            # ))
         elif args.arch == 'vssm':
-            model = VSSM(
-                patch_size=4,
-                in_chans=3,
-                num_classes=3,
-                depths=[2, 2, 5, 2],
-                dims=96,
-                # ===================
-                ssm_d_state=1,
-                ssm_ratio=2.0,
-                ssm_rank_ratio=2.0,
-                ssm_dt_rank="auto",
-                ssm_act_layer="silu",
-                ssm_conv=3,
-                ssm_conv_bias=False,
-                ssm_drop_rate=0.0,
-                ssm_init="v0",
-                forward_type="v05_noz",
-                # ===================
-                mlp_ratio=4.0,
-                mlp_act_layer="gelu",
-                mlp_drop_rate=0.0,
-                # ===================
-                drop_path_rate=0.2,
-                patch_norm=True,
-                norm_layer="ln2d",
-                downsample_version="v3",
-                patchembed_version="v2",
-                gmlp=False,
-                use_checkpoint=False,
-                # ===================
-                posembed=False,
-                imgsize=224,
-            )
+            config = configurations[args.arch]
+            model = VSSM(**config)
             state_dict = torch.load('VMamba/vssm_tiny_0230_ckpt_epoch_262.pth')['model']
             state_dict = {key: value for key, value in state_dict.items() if not key.startswith('classifier')}
             model.load_state_dict(state_dict, strict=False)
