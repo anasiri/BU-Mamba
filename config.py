@@ -1,4 +1,4 @@
-configurations: {
+configurations = {
     "vim-s": {
         "img_size": 224,
         "patch_size": 16,
