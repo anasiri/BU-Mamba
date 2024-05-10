@@ -2,7 +2,7 @@ import argparse
 
 
 def get_args_parser():
-    parser = argparse.ArgumentParser('DeiT training and evaluation script', add_help=False)
+    parser = argparse.ArgumentParser('BU training and evaluation script', add_help=False)
     parser.add_argument('--batch-size', default=64, type=int)
     parser.add_argument('--epochs', default=50, type=int)
     parser.add_argument('--bce-loss', action='store_true')
@@ -175,6 +175,8 @@ def get_args_parser():
     parser.set_defaults(if_random_token_rank=False)
 
     parser.add_argument('--local-rank', default=0, type=int)
-    parser.add_argument('--arch', default='vim-s', type=str, choices=['vim-s', 'vit-s', 'vssm'])
+    parser.add_argument('--arch', default='vim-s', type=str,
+                        choices=['resnet50', 'vgg16', 'inception', 'vit-ti16', 'vit-s16', 'vit-s32', 'vit-b16',
+                                 'vit-b32', 'vim-s', 'vssm'])
     parser.add_argument('--disable_wandb', action='store_false', help='Disable Weights & Biases logging. Enabled by default.')
     return parser
