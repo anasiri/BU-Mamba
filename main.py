@@ -118,12 +118,12 @@ def main():
 
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-        print(f'Training time for fold {fold_index + 1}: {total_time_str} \n\n\n')
+        print(f'Training time for fold {fold_index + 1}: {total_time_str} \n')
 
     average_max_accuracy = sum(all_folds_max_accuracy) / len(all_folds_max_accuracy)
     average_max_auc = sum(all_folds_max_auc) / len(all_folds_max_auc)  # Average AUC across folds
     print(f'Average maximum accuracy across all folds: {average_max_accuracy:.2f}%')
-    print(f'Average maximum AUC across all folds: {average_max_auc:.3f}')
+    print(f'Average maximum AUC across all folds: {average_max_auc:.3f}\n')
 
 if __name__ == '__main__':
     main()

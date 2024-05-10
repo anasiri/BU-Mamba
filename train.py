@@ -51,7 +51,7 @@ def init_model(args, device):
         state_dict.pop('head.weight')
         state_dict.pop('head.bias')
         model.load_state_dict(state_dict, strict=False)
-    elif args.arch == 'vssm':
+    elif args.arch == 'vssm-ti':
         config = configurations[args.arch]
         model = VSSM(**config)
         state_dict = torch.load('VMamba/vssm_tiny_0230_ckpt_epoch_262.pth')['model']
