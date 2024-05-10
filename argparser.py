@@ -152,7 +152,7 @@ def get_args_parser():
     # amp about
     parser.add_argument('--if_amp', action='store_true')
     parser.add_argument('--no_amp', action='store_false', dest='if_amp')
-    parser.set_defaults(if_amp=True)
+    parser.set_defaults(if_amp=False)
 
     # if continue with inf
     parser.add_argument('--if_continue_inf', action='store_true')
