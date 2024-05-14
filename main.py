@@ -57,10 +57,10 @@ def main():
         corresponding_test_stats = None
 
         n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        wandb.run.summary["n_parameters"] = n_parameters
-
         print(f'Number of params: {n_parameters}')
-
+        if not args.disable_wandb:
+            wandb.run.summary["n_parameters"] = n_parameters
+            
         for epoch in range(args.start_epoch, args.epochs):
             train_stats = train_one_epoch(model, criterion, train_loader, optimizer, device, epoch, loss_scaler,
                                           amp_autocast, args.clip_grad, model_ema, mixup_fn,
@@ -154,11 +154,12 @@ def main():
     print(f'Average maximum AUC across all folds: {average_max_auc:.3f}')
     print(f'Average corresponding Test Accuracy: {average_test_acc:.2f}%, AUC: {average_test_auc:.3f}\n')
 
-    wandb.run.summary["mean_val_acc"] = average_max_accuracy
-    wandb.run.summary["mean_val_auc"] = average_max_auc
-    wandb.run.summary["mean_test_acc"] = average_test_acc
-    wandb.run.summary["mean_test_auc"] = average_test_auc
+
     if not args.disable_wandb:
+        wandb.run.summary["mean_val_acc"] = average_max_accuracy
+        wandb.run.summary["mean_val_auc"] = average_max_auc
+        wandb.run.summary["mean_test_acc"] = average_test_acc
+        wandb.run.summary["mean_test_auc"] = average_test_auc
         wandb.finish()
 
 if __name__ == '__main__':
