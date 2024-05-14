@@ -28,13 +28,9 @@ def train_one_epoch(model: torch.nn.Module, criterion,
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 1
 
-    # debug
-    # count = 0
+    all_outputs = []
+    all_targets = []
     for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
-        # count += 1
-        # if count > 20:
-        #     break
-
         samples = samples.to(device, non_blocking=True)
         targets = targets.to(device, non_blocking=True)
 
@@ -48,17 +44,12 @@ def train_one_epoch(model: torch.nn.Module, criterion,
             targets = targets.gt(0.0).type(targets.dtype)
 
         with amp_autocast():
-            # outputs = model(samples, if_random_cls_token_position=args.if_random_cls_token_position, if_random_token_rank=args.if_random_token_rank)
             outputs = model(samples)
-            # if not args.cosub:
-            #     loss = criterion(outputs, targets)
-            # else:
-            #     outputs = torch.split(outputs, outputs.shape[0]//2, dim=0)
-            #     loss = 0.25 * criterion(outputs[0], targets)
-            #     loss = loss + 0.25 * criterion(outputs[1], targets)
-            #     loss = loss + 0.25 * criterion(outputs[0], outputs[1].detach().sigmoid())
-            #     loss = loss + 0.25 * criterion(outputs[1], outputs[0].detach().sigmoid())
             loss = criterion(outputs, targets)
+
+        # Calculate accuracy for each batch
+        acc1 = accuracy(outputs, targets)[0]
+        batch_size = outputs.shape[0]
 
         if args.if_nan2num:
             with amp_autocast():
@@ -91,20 +82,35 @@ def train_one_epoch(model: torch.nn.Module, criterion,
         if model_ema is not None:
             model_ema.update(model)
 
-        metric_logger.update(loss=loss_value)
+        metric_logger.update(train_loss=loss_value)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
+        metric_logger.meters[f'train_acc1'].update(acc1.item(), n=batch_size)
+
+        # Store outputs and targets for global AUC calculation
+        all_outputs.append(outputs.detach())
+        all_targets.append(targets.detach())
+
+        # Concatenate all batches
+    all_outputs = torch.cat(all_outputs)
+    all_targets = torch.cat(all_targets)
+
+    # Calculate global AUC
+    train_auc = multi_class_auc(all_outputs, all_targets) * 100
+    metric_logger.update(train_auc=train_auc)
+
     # gather the stats from all processes
     metric_logger.synchronize_between_processes(args)
-    print("Averaged stats:", metric_logger)
-    return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+    # print("Averaged stats:", metric_logger)
+    return {k.split('_')[-1]: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
 @torch.no_grad()
-def evaluate(data_loader, model, device, amp_autocast, args):
+def evaluate(data_loader, model, device, amp_autocast, args, split: str):
+    assert split in ['val', 'test'], "Evaluation Split must be either 'val' or 'test'"
     criterion = torch.nn.CrossEntropyLoss()
 
     metric_logger = utils.MetricLogger(delimiter="  ")
-    header = 'Test:'
+    header = f"{split.capitalize()}:"
 
     # switch to evaluation mode
     model.eval()
@@ -124,8 +130,11 @@ def evaluate(data_loader, model, device, amp_autocast, args):
 
         acc1 = accuracy(output, target)[0]
         batch_size = images.shape[0]
-        metric_logger.update(loss=loss.item())
-        metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
+        if split == 'val':
+            metric_logger.update(val_loss=loss.item())
+        elif split == 'test':
+            metric_logger.update(test_loss=loss.item())
+        metric_logger.meters[f'{split}_acc1'].update(acc1.item(), n=batch_size)
 
         # Save outputs and targets to calculate AUC later
         all_outputs.append(output)
@@ -136,14 +145,16 @@ def evaluate(data_loader, model, device, amp_autocast, args):
     all_targets = torch.cat(all_targets)
 
     # Calculate global AUC
-    auc_score = multi_class_auc(all_outputs, all_targets)*100
+    auc_score = multi_class_auc(all_outputs, all_targets) * 100
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes(args)
-    print('* Acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f} AUC {auc:.3f}'
-          .format(top1=metric_logger.meters['acc1'], losses=metric_logger.meters['loss'], auc=auc_score))
+    # print('* Acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f} AUC {auc:.3f}'
+    #       .format(top1=metric_logger.meters[f'{split}_acc1'], losses=metric_logger.meters[f'{split}_loss'],
+    #               auc=auc_score))
 
     # Add AUC to results
-    results = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
-    results['auc'] = auc_score
+    metric_logger.meters[f'{split}_auc'].update(auc_score)
+    results = {k.split('_')[-1]: meter.global_avg for k, meter in metric_logger.meters.items()}
+
     return results

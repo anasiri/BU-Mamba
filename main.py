@@ -19,22 +19,27 @@ def main():
     if not args.disable_wandb and args.local_rank == 0:
         wandb.init(
             # set the wandb project where this run will be logged
-            project="BU-ViT",
+            project="BU-ViT-Test",
             # track hyperparameters and run metadata
-            config=args
+            config=args,
+            name=args.arch
         )
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Set seeds for reproducibility
     utils.set_seed(args.seed)
 
     # Prepare data loaders
-    train_loaders, val_loaders = get_data_loaders(args)
+    # train_loaders, val_loaders = get_data_loaders(args)
 
     all_folds_max_accuracy = []
     all_folds_max_auc = []
-    for fold_index in range(len(train_loaders)):
-        train_loader = train_loaders[fold_index]
-        val_loader = val_loaders[fold_index]
+    all_folds_corresponding_test_stats = []
+
+    for fold_index in range(args.k_folds):
+        # train_loader = train_loaders[fold_index]
+        # val_loader = val_loaders[fold_index]
+        train_loader, val_loader, test_loader = get_data_loaders(args, seed=fold_index + args.seed)
+
         # Initialize and load model
         model = init_model(args, device)
 
@@ -45,27 +50,34 @@ def main():
         optimizer, lr_scheduler, amp_autocast, loss_scaler, model_ema = init_training(model, args)
         criterion, mixup_fn = init_criterion(args)
 
-        print(f"Start training for fold {fold_index + 1}/{len(train_loaders)} for {args.epochs} epochs")
+        print(f"Start training for fold {fold_index + 1}/{args.k_folds} for {args.epochs} epochs")
         start_time = time.time()
         max_accuracy = 0.0
         max_auc = 0.0
+        corresponding_test_stats = None
+
         n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f'Number of params: {n_parameters}')
 
         for epoch in range(args.start_epoch, args.epochs):
-            if args.distributed:
-                train_loader.sampler.set_epoch(epoch)
-
-            train_stats = train_one_epoch(
-                model, criterion, train_loader,
-                optimizer, device, epoch, loss_scaler, amp_autocast,
-                args.clip_grad, model_ema, mixup_fn,
-                set_training_mode=args.train_mode,
-                # keep in eval mode for deit finetuning / train mode for training and deit III finetuning
-                args=args,
-            )
-
+            train_stats = train_one_epoch(model, criterion, train_loader, optimizer, device, epoch, loss_scaler,
+                                          amp_autocast, args.clip_grad, model_ema, mixup_fn,
+                                          set_training_mode=args.train_mode, args=args)
             lr_scheduler.step(epoch)
+            val_stats = evaluate(val_loader, model, device, amp_autocast, args, split='val')
+            test_stats = evaluate(test_loader, model, device, amp_autocast, args, split='test')
+
+            # Always print epoch results
+            print(f"\nEpoch {epoch + 1} - Fold {fold_index + 1}: Training Loss: {train_stats['loss']:.4f}, ",
+                  f"Training Acc: {train_stats['acc1']:.2f}%, Training AUC: {train_stats['auc']:.2f}%")
+
+            print(f"Epoch {epoch + 1} - Fold {fold_index + 1}: Validation Loss: {val_stats['loss']:.4f}, ",
+                  f"Validation Acc: {val_stats['acc1']:.2f}%, Validation AUC: {val_stats['auc']:.2f}%")
+
+            print(f"Epoch {epoch + 1} - Fold {fold_index + 1}: Test Loss: {test_stats['loss']:.4f}, ",
+                  f"Test Acc: {test_stats['acc1']:.2f}%, Test AUC: {test_stats['auc']:.2f}%\n")
+
+
             if args.output_dir:
                 checkpoint_paths = [output_dir / 'checkpoint.pth']
                 for checkpoint_path in checkpoint_paths:
@@ -80,13 +92,13 @@ def main():
                         'args': args,
                     }, checkpoint_path)
 
-            test_stats = evaluate(val_loader, model, device, amp_autocast, args)
-            print(f"Accuracy of the network for fold {fold_index + 1} on test images: {test_stats['acc1']:.1f}%")
-            print(f"AUC of the network for fold {fold_index + 1} on test images: {test_stats['auc']:.3f}")
-
-            if max_accuracy < test_stats["acc1"]:
-                max_accuracy = test_stats["acc1"]
-                max_auc = test_stats["auc"]  # Update max AUC simultaneously
+            if max_accuracy <= val_stats["acc1"]:
+                max_accuracy = val_stats["acc1"]
+                max_auc = val_stats["auc"]
+                corresponding_test_stats = {
+                    'test_acc': test_stats['acc1'],
+                    'test_auc': test_stats['auc']
+                }
                 if args.output_dir:
                     checkpoint_paths = [output_dir / 'best_checkpoint.pth']
                     for checkpoint_path in checkpoint_paths:
@@ -101,29 +113,42 @@ def main():
                             'args': args,
                         }, checkpoint_path)
 
-            print(f'\nMax accuracy for fold {fold_index + 1}: {max_accuracy:.2f}% Epoch {epoch+1}/{args.epochs}')
-            print(f'Max AUC for fold {fold_index + 1}: {max_auc:.2f}% Epoch {epoch+1}/{args.epochs}\n')
+
             log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+                         **{f'val_{k}': v for k, v in val_stats.items()},
                          **{f'test_{k}': v for k, v in test_stats.items()},
                          'epoch': epoch, 'fold': fold_index + 1}
 
             if args.output_dir:
                 with (output_dir / "log.txt").open("a") as f:
                     f.write(json.dumps(log_stats) + "\n")
+            print(f'Max Val Statistics for fold {fold_index + 1}: Accuracy - {max_accuracy:.2f}%, AUC - {max_auc:.3f}')
+            print(f'Corresponding Test Statistics: Accuracy - {corresponding_test_stats["test_acc"]:.2f}%, AUC - {corresponding_test_stats["test_auc"]:.3f}\n')
 
-        print(f'Max accuracy for fold {fold_index + 1}: {max_accuracy:.2f}%')
-        print(f'Max AUC for fold {fold_index + 1}: {max_auc:.3f}')
         all_folds_max_accuracy.append(max_accuracy)
         all_folds_max_auc.append(max_auc)  # Append max AUC per fold
+        all_folds_corresponding_test_stats.append(corresponding_test_stats)
+
+        # print(f'Max Val Statistics for fold {fold_index + 1}: Accuracy - {max_accuracy:.2f}%, AUC - {max_auc:.3f}')
+        # print(f'Corresponding Test Statistics: Accuracy - {corresponding_test_stats["test_acc"]:.2f}%, AUC - {corresponding_test_stats["test_auc"]:.3f}')
 
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
         print(f'Training time for fold {fold_index + 1}: {total_time_str} \n')
 
     average_max_accuracy = sum(all_folds_max_accuracy) / len(all_folds_max_accuracy)
-    average_max_auc = sum(all_folds_max_auc) / len(all_folds_max_auc)  # Average AUC across folds
+    average_max_auc = sum(all_folds_max_auc) / len(all_folds_max_auc)
     print(f'Average maximum accuracy across all folds: {average_max_accuracy:.2f}%')
-    print(f'Average maximum AUC across all folds: {average_max_auc:.3f}\n')
+    print(f'Average maximum AUC across all folds: {average_max_auc:.3f}')
+
+    average_test_acc = sum(stat['test_acc'] for stat in all_folds_corresponding_test_stats) / len(all_folds_corresponding_test_stats)
+    average_test_auc = sum(stat['test_auc'] for stat in all_folds_corresponding_test_stats) / len(all_folds_corresponding_test_stats)
+    print(f'Average maximum accuracy across all folds: {average_max_accuracy:.2f}%')
+    print(f'Average maximum AUC across all folds: {average_max_auc:.3f}')
+    print(f'Average corresponding Test Accuracy: {average_test_acc:.2f}%, AUC: {average_test_auc:.3f}\n')
+
+    if not args.disable_wandb:
+        wandb_run.finish()
 
 if __name__ == '__main__':
     main()

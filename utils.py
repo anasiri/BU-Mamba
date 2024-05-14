@@ -172,10 +172,8 @@ def _load_checkpoint_for_ema(model_ema, checkpoint):
     mem_file.seek(0)
     model_ema._load_checkpoint(mem_file)
 
-def set_seed(base_seed):
+def set_seed(seed):
     """Set seed for reproducibility."""
-    rank = get_rank()
-    seed = base_seed + rank
     torch.manual_seed(seed)
     np.random.seed(seed)
     if torch.cuda.is_available():

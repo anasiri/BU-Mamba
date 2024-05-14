@@ -132,7 +132,11 @@ def get_args_parser():
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
+
     parser.add_argument('--k-folds', type=int, default=5, help='Number of folds for K-Fold cross-validation')
+    parser.add_argument('--val_size', type=float, default=0.15, help='Validation Set Size')
+    parser.add_argument('--test_size', type=float, default=0.15, help='Test Set Size')
+
     parser.add_argument('--eval', action='store_true', help='Perform evaluation only')
     parser.add_argument('--eval-crop-ratio', default=0.875, type=float, help="Crop ratio for evaluation")
     parser.add_argument('--dist-eval', action='store_true', default=False, help='Enabling distributed evaluation')
@@ -178,5 +182,5 @@ def get_args_parser():
     parser.add_argument('--arch', default='vim-s', type=str,
                         choices=['resnet50', 'vgg16', 'inception', 'vit-ti16', 'vit-s16', 'vit-s32', 'vit-b16',
                                  'vit-b32', 'vim-s', 'vssm-ti'])
-    parser.add_argument('--disable_wandb', action='store_false', help='Disable Weights & Biases logging. Enabled by default.')
+    parser.add_argument('--disable_wandb', action='store_true', help='Disable Weights & Biases logging. Enabled by default.')
     return parser
