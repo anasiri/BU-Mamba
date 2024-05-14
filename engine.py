@@ -148,13 +148,13 @@ def evaluate(data_loader, model, device, amp_autocast, args, split: str):
     auc_score = multi_class_auc(all_outputs, all_targets) * 100
 
     # gather the stats from all processes
-    metric_logger.synchronize_between_processes(args)
     # print('* Acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f} AUC {auc:.3f}'
     #       .format(top1=metric_logger.meters[f'{split}_acc1'], losses=metric_logger.meters[f'{split}_loss'],
     #               auc=auc_score))
 
     # Add AUC to results
     metric_logger.meters[f'{split}_auc'].update(auc_score)
+    metric_logger.synchronize_between_processes(args)
     results = {k.split('_')[-1]: meter.global_avg for k, meter in metric_logger.meters.items()}
 
     return results
