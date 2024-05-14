@@ -9,7 +9,7 @@ EPOCHS=100
 KFOLDS=5
 
 # Define all model architectures to train
-declare -a architectures=("resnet50" "vgg16" "vit-ti16" "vit-s16" "vit-s32" "vit-b16" "vit-b32" "vim-s" "vssm-ti")
+declare -a architectures=("resnet50" "vgg16" "vit-ti16" "vit-s16" "vit-s32" "vit-b16" "vit-b32" "vim-s" "vssm-ti" "vssm-s" "vssm-b")
 
 # Loop through each architecture and run the training
 for arch in "${architectures[@]}"

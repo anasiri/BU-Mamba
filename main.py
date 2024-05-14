@@ -125,6 +125,11 @@ def main():
             print(f'Max Val Statistics for fold {fold_index + 1}: Accuracy - {max_accuracy:.2f}%, AUC - {max_auc:.3f}')
             print(f'Corresponding Test Statistics: Accuracy - {corresponding_test_stats["test_acc"]:.2f}%, AUC - {corresponding_test_stats["test_auc"]:.3f}\n')
 
+
+            # update W&B
+            if not args.disable_wandb and args.local_rank == 0:
+                wandb.log(log_stats)
+
         all_folds_max_accuracy.append(max_accuracy)
         all_folds_max_auc.append(max_auc)  # Append max AUC per fold
         all_folds_corresponding_test_stats.append(corresponding_test_stats)

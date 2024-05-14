@@ -110,8 +110,6 @@ class MetricLogger(object):
     def synchronize_between_processes(self, args):
         for meter in self.meters.values():
             meter.synchronize_between_processes()
-        if not args.disable_wandb and args.local_rank==0:
-            wandb.log({meter_name: meter.value for meter_name, meter in self.meters.items()})
 
     def add_meter(self, name, meter):
         self.meters[name] = meter

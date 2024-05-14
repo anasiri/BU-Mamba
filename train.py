@@ -47,14 +47,26 @@ def init_model(args, device):
     elif args.arch == 'vim-s':
         config = configurations[args.arch]
         model = VisionMamba(num_classes=3, **config)
-        state_dict = torch.load('checkpoints/vim_s_midclstok_80p5acc.pth')['model']
+        state_dict = torch.load('checkpoints/pretrained/vim_s_midclstok_80p5acc.pth')['model']
         state_dict.pop('head.weight')
         state_dict.pop('head.bias')
         model.load_state_dict(state_dict, strict=False)
     elif args.arch == 'vssm-ti':
         config = configurations[args.arch]
         model = VSSM(**config)
-        state_dict = torch.load('VMamba/vssm_tiny_0230_ckpt_epoch_262.pth')['model']
+        state_dict = torch.load('checkpoints/pretrained/vssm_tiny_0230_ckpt_epoch_262.pth')['model']
+        state_dict = {key: value for key, value in state_dict.items() if not key.startswith('classifier')}
+        model.load_state_dict(state_dict, strict=False)
+    elif args.arch == 'vssm-s':
+        config = configurations[args.arch]
+        model = VSSM(**config)
+        state_dict = torch.load('checkpoints/pretrained/vssm_small_0229_ckpt_epoch_222.pth')['model']
+        state_dict = {key: value for key, value in state_dict.items() if not key.startswith('classifier')}
+        model.load_state_dict(state_dict, strict=False)
+    elif args.arch == 'vssm-b':
+        config = configurations[args.arch]
+        model = VSSM(**config)
+        state_dict = torch.load('checkpoints/pretrained/vssm_base_0229_ckpt_epoch_237.pth')['model']
         state_dict = {key: value for key, value in state_dict.items() if not key.startswith('classifier')}
         model.load_state_dict(state_dict, strict=False)
     else:
