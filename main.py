@@ -57,6 +57,8 @@ def main():
         corresponding_test_stats = None
 
         n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        wandb.run.summary["n_parameters"] = n_parameters
+
         print(f'Number of params: {n_parameters}')
 
         for epoch in range(args.start_epoch, args.epochs):
