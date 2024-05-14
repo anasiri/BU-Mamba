@@ -19,7 +19,7 @@ def main():
     if not args.disable_wandb and args.local_rank == 0:
         wandb.init(
             # set the wandb project where this run will be logged
-            project="BU-ViT-Test",
+            project="BU-Mamba",
             # track hyperparameters and run metadata
             config=args,
             name=args.arch
@@ -147,8 +147,12 @@ def main():
     print(f'Average maximum AUC across all folds: {average_max_auc:.3f}')
     print(f'Average corresponding Test Accuracy: {average_test_acc:.2f}%, AUC: {average_test_auc:.3f}\n')
 
+    wandb.run.summary["mean_val_acc"] = average_max_accuracy
+    wandb.run.summary["mean_val_auc"] = average_max_auc
+    wandb.run.summary["mean_test_acc"] = average_test_acc
+    wandb.run.summary["mean_test_auc"] = average_test_auc
     if not args.disable_wandb:
-        wandb_run.finish()
+        wandb.finish()
 
 if __name__ == '__main__':
     main()
