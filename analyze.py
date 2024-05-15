@@ -3,6 +3,12 @@ import json
 import numpy as np
 from natsort import os_sorted
 
+
+def get_max_last_index(result):
+    result = np.array(result)
+    index = result.shape[0]-np.argmax(result[::-1])-1
+    return index
+
 results_dir = 'checkpoints/results/'
 experiments = [i for i in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir,i))]
 for experiment_name in experiments[:]:
@@ -26,8 +32,9 @@ for experiment_name in experiments[:]:
     
     if len(experiment_results) == 0:
         continue
-    test_accs = [np.max(fold_result['test_acc1']) for fold_result in experiment_results]
-    test_aucs = [fold_result['test_auc'][np.argmax(fold_result['test_acc1'])] for fold_result in experiment_results]
+
+    test_accs = [fold_result['test_acc1'][get_max_last_index(fold_result['val_acc1'])] for fold_result in experiment_results]
+    test_aucs = [fold_result['test_auc'][get_max_last_index(fold_result['val_acc1'])] for fold_result in experiment_results]
     print(f"Experiment Name: {experiment_name}")
     print("Accs: ", [round(i,2) for i in test_accs])
     print("AUCs: ", [round(i,2) for i in test_aucs], "\n")
