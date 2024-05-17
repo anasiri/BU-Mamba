@@ -12,17 +12,18 @@ from engine import train_one_epoch, evaluate
 import utils
 from data import get_data_loaders
 from train import init_training, init_model, init_criterion
-
+import os 
 
 def main():
     args = get_args_parser().parse_known_args()[0]
+    data_name = os.path.basename(os.path.normpath(args.data_path))
     if not args.disable_wandb and args.local_rank == 0:
         wandb.init(
             # set the wandb project where this run will be logged
             project="BU-Mamba",
             # track hyperparameters and run metadata
             config=args,
-            name=args.arch
+            name=f"{args.arch}-{data_name}"
         )
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Set seeds for reproducibility

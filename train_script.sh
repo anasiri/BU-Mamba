@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the path to the dataset and the base output directory
-DATA_PATH="dataset/Combined/"
-BASE_OUTPUT_DIR="checkpoints/results"
+DATA_PATH="dataset/B/"
+BASE_OUTPUT_DIR="checkpoints/results_B"
 
 # Define the total number of epochs for training
 EPOCHS=100
@@ -22,7 +22,7 @@ do
     OUTPUT_DIR="$BASE_OUTPUT_DIR/$arch/"
 
     # Run the training command with k-folds parameter
-    python3 main.py --epochs $EPOCHS --data_path $DATA_PATH --output_dir $OUTPUT_DIR --arch $arch --k-folds $KFOLDS
+    python3 main.py --epochs $EPOCHS --data-path $DATA_PATH --output_dir $OUTPUT_DIR --arch $arch --k-folds $KFOLDS
 
     echo "--------------------------------------------------------------------------------"
     echo "Training completed for $arch"
