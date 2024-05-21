@@ -15,11 +15,11 @@ from vim.models_mamba import VisionMamba
 from VMamba.classification.models.vmamba import VSSM
 from torchvision import models
 
-def init_model(args, device):
+def init_model(args, device, num_classes):
     """Initialize the model based on the provided arguments."""
     if args.arch == 'resnet50':
         model = models.resnet50(weights=models.resnet.ResNet50_Weights.IMAGENET1K_V1)
-        model.fc = nn.Linear(2048, 3)
+        model.fc = nn.Linear(2048, num_classes)
     elif args.arch == 'vgg16':
         model = models.vgg16(weights=models.vgg.VGG16_Weights.IMAGENET1K_V1)
         model.classifier = nn.Sequential(
@@ -29,42 +29,42 @@ def init_model(args, device):
             nn.Linear(in_features=4096, out_features=4096, bias=True),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=4096, out_features=3, bias=True)
+            nn.Linear(in_features=4096, out_features=num_classes, bias=True)
         )
-    elif args.arch == 'inception':
-        model = models.inception_v3(weights=models.inception.Inception_V3_Weights.IMAGENET1K_V1)
-        model.fc = nn.Linear(2048, 3)
     elif args.arch == 'vit-ti16':
-        model = create_model('vit_tiny_patch16_224', pretrained=True, img_size=224, num_classes=3)
+        model = create_model('vit_tiny_patch16_224', pretrained=True, img_size=224, num_classes=num_classes)
     elif args.arch == 'vit-s16':
-        model = create_model('vit_small_patch16_224', pretrained=True, img_size=224, num_classes=3)
+        model = create_model('vit_small_patch16_224', pretrained=True, img_size=224, num_classes=num_classes)
     elif args.arch == 'vit-s32':
-        model = create_model('vit_small_patch32_224', pretrained=True, img_size=224, num_classes=3)
+        model = create_model('vit_small_patch32_224', pretrained=True, img_size=224, num_classes=num_classes)
     elif args.arch == 'vit-b16':
-        model = create_model('vit_base_patch16_224', pretrained=True, img_size=224, num_classes=3)
+        model = create_model('vit_base_patch16_224', pretrained=True, img_size=224, num_classes=num_classes)
     elif args.arch == 'vit-b32':
-        model = create_model('vit_base_patch32_224', pretrained=True, img_size=224, num_classes=3)
+        model = create_model('vit_base_patch32_224', pretrained=True, img_size=224, num_classes=num_classes)
     elif args.arch == 'vim-s':
         config = configurations[args.arch]
-        model = VisionMamba(num_classes=3, **config)
+        model = VisionMamba(num_classes=num_classes, **config)
         state_dict = torch.load('checkpoints/pretrained/vim_s_midclstok_80p5acc.pth')['model']
         state_dict.pop('head.weight')
         state_dict.pop('head.bias')
         model.load_state_dict(state_dict, strict=False)
     elif args.arch == 'vssm-ti':
         config = configurations[args.arch]
+        config['num_classes'] = num_classes
         model = VSSM(**config)
         state_dict = torch.load('checkpoints/pretrained/vssm_tiny_0230_ckpt_epoch_262.pth')['model']
         state_dict = {key: value for key, value in state_dict.items() if not key.startswith('classifier')}
         model.load_state_dict(state_dict, strict=False)
     elif args.arch == 'vssm-s':
         config = configurations[args.arch]
+        config['num_classes'] = num_classes
         model = VSSM(**config)
         state_dict = torch.load('checkpoints/pretrained/vssm_small_0229_ckpt_epoch_222.pth')['model']
         state_dict = {key: value for key, value in state_dict.items() if not key.startswith('classifier')}
         model.load_state_dict(state_dict, strict=False)
     elif args.arch == 'vssm-b':
         config = configurations[args.arch]
+        config['num_classes'] = num_classes
         model = VSSM(**config)
         state_dict = torch.load('checkpoints/pretrained/vssm_base_0229_ckpt_epoch_237.pth')['model']
         state_dict = {key: value for key, value in state_dict.items() if not key.startswith('classifier')}

@@ -42,7 +42,8 @@ def main():
         train_loader, val_loader, test_loader = get_data_loaders(args, seed=fold_index + args.seed)
 
         # Initialize and load model
-        model = init_model(args, device)
+        num_classes = len(train_loader.dataset.dataset.classes)
+        model = init_model(args, device, num_classes)
 
         # start from here
         output_dir = Path(args.output_dir) / f"fold_{fold_index}"
