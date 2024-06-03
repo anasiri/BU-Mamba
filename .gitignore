@@ -22,7 +22,10 @@ dataset/
 *csv
 *xlsx
 *txt
+*pickle
 .ipynb_checkpoints/
 __pycache__/
 .idea/
 wandb/
+wandb_configs/
+

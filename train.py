@@ -44,10 +44,10 @@ def init_model(args, device, num_classes):
     elif args.arch == 'vim-s':
         config = configurations[args.arch]
         model = VisionMamba(num_classes=num_classes, **config)
-        state_dict = torch.load('checkpoints/pretrained/vim_s_midclstok_80p5acc.pth')['model']
-        state_dict.pop('head.weight')
-        state_dict.pop('head.bias')
-        model.load_state_dict(state_dict, strict=False)
+        # state_dict = torch.load('checkpoints/pretrained/vim_s_midclstok_80p5acc.pth')['model']
+        # state_dict.pop('head.weight')
+        # state_dict.pop('head.bias')
+        # model.load_state_dict(state_dict, strict=False)
     elif args.arch == 'vssm-ti':
         config = configurations[args.arch]
         config['num_classes'] = num_classes
