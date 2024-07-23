@@ -26,3 +26,5 @@ dataset/
 __pycache__/
 .idea/
 wandb/
+wandb_configs/
+mamba/
