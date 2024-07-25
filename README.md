@@ -61,7 +61,14 @@ dataset/
 ## Installation
 We use Python 3.10, torch 2.1.2 with cuda 12.2 on a single A100-40GB GPU. 
 
-
+Use the following command to install the required packages:
+```
+cd ../mamba-1p1p1
+pip install -e .
+pip install causal_conv1d==1.1.0
+pip install timm
+pip install wandb
+```
 ## Training
 Use the following commands to run the training script for each dataset:
 ```
