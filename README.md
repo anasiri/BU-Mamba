@@ -88,6 +88,8 @@ You can use the ***analysis.ipynb*** to summarize different models performances.
 
 For statistical significance analysis, you can use the ***stats_pvalue.ipynb***.
 
+## Acknowledgement
+This work is based on the [Mamba](https://github.com/state-spaces/mamba/), [Vim](https://github.com/hustvl/Vim), and [VMamba](https://github.com/MzeroMiko/VMamba?tab=readme-ov-file). If you use our code, please consider citing the original repositories.
 
 ## Citation
 If you find this repository useful, please consider giving a star and citation (arxiv preprint):
