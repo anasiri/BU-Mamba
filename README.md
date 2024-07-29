@@ -70,6 +70,25 @@ pip install timm
 pip install wandb
 ```
 ## Training
+If you want to train the Mamba based models, you need to copy the pretrained weights to the following locations. Note, that if these repositories change the name of their checkpoints, you need to update the name in the ***train.py*** file for ***init_model*** function. 
+
+Vim-s ([[`link`](https://huggingface.co/hustvl/Vim-small-midclstok/tree/main)]):
+```
+'checkpoints/pretrained/vim_s_midclstok_80p5acc.pth'
+```
+VMamba-ti ([[`link`](https://github.com/MzeroMiko/VMamba?tab=readme-ov-file)]):
+```
+'checkpoints/pretrained/vssm_tiny_0230_ckpt_epoch_262.pth'
+```
+VMamba-s ([[`link`]([https://github.com/MzeroMiko/VMamba?tab=readme-ov-file))]):
+```
+'checkpoints/pretrained/vssm_small_0229_ckpt_epoch_222.pth'
+```
+
+VMamba-ti ([[`link`]([https://github.com/MzeroMiko/VMamba?tab=readme-ov-file))]):
+```
+'checkpoints/pretrained/vssm_base_0229_ckpt_epoch_237.pth'
+```
 Use the following commands to run the training script for each dataset:
 ```
 CUDA_VISIBLE_DEVICES=0 bash train_script_B.sh 2>&1 | tee log_file_B.txt
