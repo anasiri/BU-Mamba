@@ -68,6 +68,9 @@ pip install -e .
 pip install causal_conv1d==1.1.0
 pip install timm
 pip install wandb
+
+cd VMamba/kernels/selective_scan
+pip install .
 ```
 ## Training
 If you want to train the Mamba based models, you need to copy the pretrained weights to the following locations. Note, that if these repositories change the name of their checkpoints, you need to update the name in the ***train.py*** file for ***init_model*** function. 
